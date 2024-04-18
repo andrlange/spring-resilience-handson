@@ -39,14 +39,14 @@ this repo is intended to clone and it provides a step by step guide to cover fol
 
 ### <u>Step 1 to Step 4 are preparation steps to setup the environment.</u>
 
-## Step 1 Clone the GIT Repo)
+## Step 1) Clone the GIT Repo
 we need to clone the resilience-handson git repo:
 ```bash
 git clone https://github.com/andrlange/spring-resilience-handson.git
 ```
 the repo is public and don't need any authentication
 
-## Step 2 Start the Service Discovery)
+## Step 2) Start the Service Discovery
 Start the eureka server by changing to the eureka folder and run:
 ```bash
 mvn spring-boot:run
@@ -57,7 +57,7 @@ Username: eureka Password: password
 ![Eureka Server](images/eureka-plain.png)
 
 
-## Step 3 Config and Start the Config Server)
+## Step 3) Config and Start the Config Server
 <b>Configure the Spring Cloud Config Server</b>
 
 The spring cloud config server will serve the microservice configurations from a central repo. 
@@ -100,7 +100,7 @@ You should now receive the following config:
 
 ![Config](images/config-example.png)
 
-## Step 4 Run Containers such as DB, Zipkin etc.)
+## Step 4) Run Containers such as DB, Zipkin etc.
 Run PostgreSQL, PG-Admin, Zipkin Server, Prometheus and Granafa
 
 To run all the services you can just use the docker-compose.yaml file to start all services.
