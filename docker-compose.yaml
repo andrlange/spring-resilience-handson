@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgresql-services:
+    image: postgres:16.0-alpine
+    container_name: postgresql-services
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+      PGDATA: /var/lib/postgres/data
+    volumes:
+      - './vols/postgresql_services:/var/lib/postgres/data'
+      - './init-database.sh:/docker-entrypoint-initdb.d/init-database.sh'
+    ports:
+      - "5554:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4:8.5
+    environment:
+      PGADMIN_DEFAULT_EMAIL: user@example.de
+      PGADMIN_DEFAULT_PASSWORD: password
+    volumes:
+      - './vols/pgadmin_services_data:/etc/pgadmin/'
+      - './vols/pgadmin_services_config:/var/lib/pgadmin/'
+    ports:
+      - "5555:80"
+    depends_on:
+      - postgresql-services
+
+  open-zipkin:
+    image: openzipkin/zipkin
+    container_name: open-zipkin
+    ports:
+      - "9411:9411"
+
+  prometheus-service:
+    image: bitnami/prometheus
+    container_name: prometheus-service
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - './vols/prometheus_service:/opt/bitnami/prometheus/data'
+      - './prometheus.yaml:/opt/bitnami/prometheus/conf/prometheus.yml'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+
+  grafana:
+    image: bitnami/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - './grafana.ini:/opt/bitnami/grafana/conf/grafana.ini'
+      - './vols/grafana/:/opt/bitnami/grafana/data/'
+
+
