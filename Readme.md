@@ -43,7 +43,7 @@
 
 ***
 
-## Step 1) Clone the GIT Repo
+## Step 1: Clone the GIT Repo
 we need to clone the resilience-handson git repo:
 ```bash
 git clone https://github.com/andrlange/spring-resilience-handson.git
@@ -52,7 +52,7 @@ the repo is public and don't need any authentication
 
 ***
 
-## Step 2) Start the Service Discovery
+## Step 2: Start the Service Discovery
 Start the eureka server by changing to the eureka folder and run:
 ```bash
 mvn spring-boot:run
@@ -64,7 +64,7 @@ Username: eureka Password: password
 
 ***
 
-## Step 3) Config and Start the Config Server
+## Step 3: Config and Start the Config Server
 **Configure the Spring Cloud Config Server**
 
 The spring cloud config server will serve the microservice configurations from a central repo. 
@@ -109,7 +109,7 @@ You should now receive the following config:
 
 ***
 
-## Step 4) Run Containers such as DB, Zipkin etc.
+## Step 4: Run Containers such as DB, Zipkin etc.
 Run PostgreSQL, PG-Admin, Zipkin Server, Prometheus and Granafa
 
 To run all the services you can just use the docker-compose.yaml file to start all services.
@@ -127,12 +127,12 @@ make sure all containers are up, so you can access all the services later.
 
 ***
 
-## Step 5) Resilience4J - Retry
+## Step 5: First Microservice and Monitoring Setup
 
 First we want to extend our first microservice "FlakyService" to register with the Service Discovery (Eureka) and 
 also supporting distributed tracing using zipkin.
 
-### Step 5.a) Endpoint Test - Flaky Service
+### Step 5.a: Endpoint Test - Flaky Service
 
 Run the Flaky Service 
 
@@ -156,7 +156,7 @@ returning 200 OK
 returning 500 Error
 ![Flaky Error](images/flaky-error.png)
 
-### Step 5.b) Adding Service Discovery - Flaky Service
+### Step 5.b: Adding Service Discovery - Flaky Service
 
 Now we also want to let this service register to the Service Discovery:
 
@@ -220,7 +220,7 @@ public class EurekaShutdownHandler implements ApplicationListener<ContextClosedE
 ```
 This prevents throwing exceptions on shutdown.
 
-### Step 5.b) Adding Actuators - Flaky Service
+### Step 5.c: Adding Actuators - Flaky Service
 
 we are now adding Actuators and for testing we expose all endpoints:
 
@@ -254,7 +254,7 @@ after we restart the service we can call the actuator endpoints:
 ![Flaky Actuators](images/flaky-actuators.png)
 here you also can see the retrieved services list of the Service Discovery [eureka]
 
-### Step 5.c) Adding distributed tracing capabilities - Flaky Service
+### Step 5.d: Adding distributed tracing capabilities - Flaky Service
 
 When we later will take a look to distributed tracing wen need to add tracing metadata to all http headers so the 
 api calls and responses can be traced. We want to add a Zipkin-Header providing a traceId and a spanId to trace 
@@ -303,7 +303,7 @@ We will repeat this integration for all other services, so we can trace the whol
 you also should see the tracing information in zipkin:
 ![Flaky Zipkin](images/flaky-zipkin.png)
 
-### Step 5.d) Adding metrics for Prometheus / Grafana - Flaky Service
+### Step 5.e: Adding metrics for Prometheus / Grafana - Flaky Service
 
 As final preparing we expose metrics to a prometheus actuator endpoint so prometheus can crawl this endpoint to 
 gather operational metrics. We will also see how Resilience4J metrics will be part of those metrics.
@@ -377,3 +377,8 @@ Steps:
 
 You should see a Spring Boot Dashboard showing metrics from flaky-service (Instance:host.docker.internal:8085)
 ![Grafana Flaky](images/grafana-flaky.png)
+
+## Step 6: Resilience4J - Retry
+
+
+
