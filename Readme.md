@@ -417,6 +417,8 @@ First we will start student service to check distributed tracing:
 mvn spring-boot:run
 ```
 
+Hint!: Student Service connects to PostgreSQL and creates two entries into the students table on startup.
+
 Check to call the following endpoint:
 http://localhost:9000/student-service/api/v1/flaky
 
@@ -426,10 +428,116 @@ Client -> Gateway -> Student Service -> Gateway -> Flaky Service
 Checking Zipkin to see the distributed trace of this call:
 ![Zipkin Distributed One](images/zipkin-trace-dist-one.png)
 
+### Step 6.c: Implementing Resilience4J:Retry
+
+Adding dependencies to Student Service pom.xml
+```xml
+<!-- adding Resilience4J Circuit Breaker and Dependencies -->
+<dependency>
+  <groupId>org.springframework.cloud</groupId>
+  <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+</dependency>
+```
+```xml
+<!-- adding Resilience4J bulkhead, retry, rate limiter, timout -->
+<dependency>
+    <groupId>io.github.resilience4j</groupId>
+    <artifactId>resilience4j-all</artifactId>
+    <version>2.1.0</version>
+</dependency>
+```
+
+Configure retry in application.properties
+```properties
+# Adding configuration for Resilience4J:Retry
+# Max 3 Attempts
+resilience4j.retry.instances.flakyRetry.maxAttempts=3
+# Wait between retries
+resilience4j.retry.instances.flakyRetry.waitDuration=200
+# Retry on this Exception Type
+resilience4j.retry.instances.flakyRetry.retryExceptions=java.lang.RuntimeException
+```
+
+We will use the flaky endpoint and Flaky Service to test the Retry.
+
+We need to add some code to the RetryService to track the retries and throw exceptions when we want the caller to 
+retry as configured:
+
+```JAVA
+import cool.cfapps.studentservice.client.AddressFeignClient;
+import cool.cfapps.studentservice.dto.FlakyDto;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import io.github.resilience4j.retry.annotation.Retry;
 
 
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@Slf4j
+public class FlakyService {
+
+    // The total number of calls to the /api/v1/retry/code/{code} endpoint
+    private int callCnt = 1;
+    // the total number of retries, reset to 0 after each call
+    private int retryCnt = 0;
+
+    private final AddressFeignClient addressFeignClient;
+
+    public FlakyService(AddressFeignClient addressFeignClient) {
+        this.addressFeignClient = addressFeignClient;
+    }
 
 
+    @Retry(name = "flakyRetry")
+    public Optional<FlakyDto> getFlakyByCode(String code) {
+        retryCnt++;
+        log.info("getFlakyByCode: {} : call:retry = {}:{}", code, callCnt, retryCnt);
+        FlakyDto dto = addressFeignClient.getFlakyByCode(code);
+        // If we don't receive a response from the server, throw a runtime exception to retry
+        if (dto == null) {
+            throw new RuntimeException();
+        }
+        callCnt++;
+        retryCnt = 0;
+        return Optional.of(dto);
+    }
 
+    public List<FlakyDto> getAllFlaky() {
+        return addressFeignClient.getAllFlaky();
+    }
+}
+```
+
+Calling the endpoint
+- http://localhost:9000/student-service/api/v1/flaky/code/BIO
+
+several times creates random responses on the amount of retires. In average the Flaky Service produces 50% of 
+  failures (HTTP:500).
+
+It can happen also, that Flaky Service fails 4 times in a row, so the Retry will break and come up with a final error.
+
+Retry example 3 attempts:
+![Retry OK](images/retry-ok-3.png)
+we can see three retries logged in the Student Service log output
+
+Result:
+![Retry OK Result](images/retry-ok-result.png)
+
+Using Zipkin we can see all 3 attempts and trace down the overall response time
+![Retry OK Zipkin](images/retry-zipkin-ok.png)
+
+
+Failed Attempt: In this example 4 Flaky Service calls in row occurred, so the retry stopped after 3 attempts.
+Retry example failure:
+![Retry Fail](images/retry-fail-log.png)
+we can see three retries and failing logged in the Student Service log output
+
+Result:
+![Retry Fail Result](images/retry-fail-result.png)
+
+Using Zipkin we can see all attempts and trace down the overall response time until HTTP:500 shows up
+![Retry Fail Zipkin](images/retry-fail-zipkin.png)
 
 
