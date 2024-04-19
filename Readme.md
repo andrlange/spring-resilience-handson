@@ -1,6 +1,8 @@
 # Resilience4J Hands-On Workshop 
 (Maintained by Andreas Lange)
 
+#### Powered by: Spring Boot 3.2.5 and Spring Cloud 2023.0.1
+
 ### this repo is intended to clone, and it provides a step-by-step guide to cover following topics:
 
 - Eureka Service Discovery
@@ -730,3 +732,116 @@ The Student Service log:
 
 ## Step 9: Resilience4J - Circuit Breaker
 
+Implementing Circuit Breaker uses Spring AOP to intercept requests. Using Spring AOP needs to separate our service 
+functions into a separate Class (CommonService).
+
+First let us add Circuit Breaker config to Studend Service properties:
+```properties
+# Adding configuration for Resilience4J:Circuit Breaker
+resilience4j.circuitbreaker.instances.addressService.sliding-window-size=10
+resilience4j.circuitbreaker.instances.addressService.failureRateThreshold=50
+resilience4j.circuitbreaker.instances.addressService.waitDurationInOpenState=10s
+resilience4j.circuitbreaker.instances.addressService.automatic-transition-from-open-to-half-open-enabled=true
+resilience4j.circuitbreaker.instances.addressService.permitted-number-of-calls-in-half-open-state=5
+
+resilience4j.circuitbreaker.instances.addressService.allow-health-indicator-to-fail=true
+resilience4j.circuitbreaker.instances.addressService.register-health-indicator=true
+```
+
+Scenario: From CLOSE : 10 Calls, if 50% fails we want to OPEN the Circuit Breaker (we will stop the Address Service), 
+after 10s it falls back into HALF_OPEN, when we get positive responses in HALF-OPEN the Circuit Breaker will fall back into CLOSED.
+
+Now we need to add Circuit Breaker to the CommonService (Spring AOP Pattern)
+```JAVA
+import cool.cfapps.studentservice.client.AddressFeignClient;
+import cool.cfapps.studentservice.dto.AddressResponse;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+@Service
+@Slf4j
+public class CommonService {
+
+    private final AddressFeignClient addressFeignClient;
+    private int cnt=0;
+
+    public CommonService(AddressFeignClient addressFeignClient) {
+        this.addressFeignClient = addressFeignClient;
+    }
+
+    @CircuitBreaker(name = "addressService", fallbackMethod = "getStudentAddressFallback")
+    public Optional<AddressResponse> getStudentAddress(Long addressId) {
+        cnt++;
+        log.info("Calling address service cnt: {}", cnt);
+        AddressResponse response = addressFeignClient.getAddressById(addressId);
+        return Optional.of(response);
+    }
+
+    public Optional<AddressResponse> getStudentAddressNoLimit(Long addressId) {
+        AddressResponse response = addressFeignClient.getAddressByIdNoLimit(addressId);
+        return Optional.of(response);
+    }
+
+}
+```
+
+Now we can call the endpoints for testing:
+- http://localhost:9000/student-service/api/v1/student/0
+
+As long the Address Service is up and we don't have more than 50% failing calls (10 Calls min.), the Circuit Breaker 
+stays CLOSED.
+
+Check the Actuator:
+- http://localhost:9000/student-service/actuator/health
+
+![Circuit Breaker Closed](images/circuit-breaker-close.png)
+
+As soon we stop the Address Service and we have 50% failed calls out of ten, the Service Breaker changes to OPEN state.
+
+![Circuit Breaker Closed](images/circuit-breaker-open.png)
+
+After the configured time (10s) the Circuit Breaker will switch to HALF-OPEN to try to recover the CLOSE state. 
+
+![Circuit Breaker Closed](images/circuit-breaker-half.png)
+
+
+As soon we stay on responsive calls the Circuit Breaker will change again to CLOSED state.
+
+
+***
+
+
+## Step 10: Finally we will add a Resilience4J Dashboard to Grafana
+
+Like Step 5.d we will add a Dashboard. Execute the same steps to import dashboards/resilience.json
+Hint!: Just remember to chose prometheus as data source.
+
+Prometheus should collect all configured endpoints, check:
+- http://localhost:9090/targets?search=
+
+![Prometheus All](images/prometheus-all.png)
+
+
+***
+
+Finally, you should be able to track Resilience4J Metrics and visualize it in Grafana:
+![Grafana R4J](images/grafana-r4j.png)
+
+
+***
+
+## Addendum
+
+If you need, you will find all changes for all Services in folder: full-microservices and the configurations as 
+config/SERVICE-DEV.full
+
+Don't forget to stop all Services and:
+```bash
+docker compose down
+```
+
+### ENJOY THIS HANDS-ON
