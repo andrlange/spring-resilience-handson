@@ -380,5 +380,56 @@ You should see a Spring Boot Dashboard showing metrics from flaky-service (Insta
 
 ## Step 6: Resilience4J - Retry
 
+### Prepare using Resilience4J and Config-Server
+Before we start into resilience patterns we need to add it to a microservice calling one other.
+
+Student-Service (calls)-> Flaky Service
+we know that Flaky Service will produce 500 Errors by 50%, in this case we need to tell Student Service how often it 
+should retry to call the /code/{CODE} endpoint of Flaky Service
+
+Hint!: we will use the OpenFeign Client to configure a very efficient way of creating a HTTP-Client by defining only 
+it's Interface.
+
+Student Service will retrieve its application.properties from a central Config Server we already started earlier in 
+Step 3. Instead of the application.properties Student Service only needs to have a bootstrap.properties file.
+
+```properties
+spring.application.name=student-service
+
+spring.cloud.config.discovery.service-id=config-server
+spring.cloud.config.profile=dev
+```
+
+### Step 6.a: Running Spring Cloud Gateway 
+
+Now we will start Spring Cloud Gateway, so we are able to offload Load-Balancing in a central point for our 
+microservices and show how distributed tracing will take effect.
+
+Run Spring Cloud Gateway
+```bash
+mvn spring-boot:run
+```
+
+### Step 6.b: Running Student Service
+
+First we will start student service to check distributed tracing:
+```bash
+mvn spring-boot:run
+```
+
+Check to call the following endpoint:
+http://localhost:9000/student-service/api/v1/flaky
+
+You should again receive all student courses:
+Client -> Gateway -> Student Service -> Gateway -> Flaky Service
+
+Checking Zipkin to see the distributed trace of this call:
+![Zipkin Distributed One](images/zipkin-trace-dist-one.png)
+
+
+
+
+
+
 
 
