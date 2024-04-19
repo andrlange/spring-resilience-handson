@@ -35,6 +35,7 @@
 - Maven 3.9.x
 - Docker Desktop
 - IntelliJ or VS-Code
+- Git Client
 - optional ab for stress testing
 
 # what we want to build
