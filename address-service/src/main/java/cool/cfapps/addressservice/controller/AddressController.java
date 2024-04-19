@@ -1,16 +1,11 @@
 package cool.cfapps.addressservice.controller;
 
-import cool.cfapps.addressservice.dto.AddressRequest;
 import cool.cfapps.addressservice.dto.AddressResponse;
 import cool.cfapps.addressservice.service.AddressService;
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.function.EntityResponse;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,21 +32,10 @@ public class AddressController {
             contextualName = "address-->database",
             lowCardinalityKeyValues = {"userType", "userType2"}
     )
-    @RateLimiter(name = "addressLimit", fallbackMethod = "addressErrorResponse")
     public ResponseEntity<AddressResponse> getAddressById(@PathVariable Long id) {
         log.info("get address with id: {}", id);
         Optional<AddressResponse> result = addressService.findById(id);
         return result.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
-    }
-
-    public ResponseEntity<AddressResponse> addressErrorResponse(@PathVariable Long id, Throwable th) {
-        log.info("fallback on rate limit hit");
-
-        Optional<AddressResponse> result = Optional.of(AddressResponse.builder()
-                .failure(true)
-                .build());
-
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(result.get());
     }
 
     @GetMapping("/nolimit/{id}")
@@ -66,21 +50,4 @@ public class AddressController {
         return result.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
-
-
-    @PostMapping
-    public ResponseEntity<AddressResponse> createAddress(@RequestBody AddressRequest addressRequest) {
-        log.info(addressRequest.toString());
-        return addressService.create(addressRequest).map(ResponseEntity::ok).orElse(ResponseEntity.badRequest().build());
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Boolean> deleteAddress(@PathVariable Long id) {
-        return addressService.delete(id) ? ResponseEntity.ok(true) : ResponseEntity.notFound().build();
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<AddressResponse> updateAddress(@PathVariable Long id, @RequestBody AddressRequest addressRequest) {
-        return addressService.update(id, addressRequest).map(ResponseEntity::ok).orElse(ResponseEntity.badRequest().build());
-    }
 }

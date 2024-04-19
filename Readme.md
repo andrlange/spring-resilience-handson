@@ -156,6 +156,8 @@ returning 200 OK
 returning 500 Error
 ![Flaky Error](images/flaky-error.png)
 
+***
+
 ### Step 5.b: Adding Service Discovery - Flaky Service
 
 Now we also want to let this service register to the Service Discovery:
@@ -220,6 +222,8 @@ public class EurekaShutdownHandler implements ApplicationListener<ContextClosedE
 ```
 This prevents throwing exceptions on shutdown.
 
+***
+
 ### Step 5.c: Adding Actuators - Flaky Service
 
 we are now adding Actuators and for testing we expose all endpoints:
@@ -253,6 +257,8 @@ after we restart the service we can call the actuator endpoints:
 
 ![Flaky Actuators](images/flaky-actuators.png)
 here you also can see the retrieved services list of the Service Discovery [eureka]
+
+***
 
 ### Step 5.d: Adding distributed tracing capabilities - Flaky Service
 
@@ -302,6 +308,8 @@ and see the new generated traceId and spanId
 We will repeat this integration for all other services, so we can trace the whole calling chain in zipkin.
 you also should see the tracing information in zipkin:
 ![Flaky Zipkin](images/flaky-zipkin.png)
+
+***
 
 ### Step 5.e: Adding metrics for Prometheus / Grafana - Flaky Service
 
@@ -378,6 +386,8 @@ Steps:
 You should see a Spring Boot Dashboard showing metrics from flaky-service (Instance:host.docker.internal:8085)
 ![Grafana Flaky](images/grafana-flaky.png)
 
+***
+
 ## Step 6: Resilience4J - Retry
 
 ### Prepare using Resilience4J and Config-Server
@@ -400,6 +410,8 @@ spring.cloud.config.discovery.service-id=config-server
 spring.cloud.config.profile=dev
 ```
 
+***
+
 ### Step 6.a: Running Spring Cloud Gateway 
 
 Now we will start Spring Cloud Gateway, so we are able to offload Load-Balancing in a central point for our 
@@ -409,6 +421,8 @@ Run Spring Cloud Gateway
 ```bash
 mvn spring-boot:run
 ```
+
+***
 
 ### Step 6.b: Running Student Service
 
@@ -427,6 +441,8 @@ Client -> Gateway -> Student Service -> Gateway -> Flaky Service
 
 Checking Zipkin to see the distributed trace of this call:
 ![Zipkin Distributed One](images/zipkin-trace-dist-one.png)
+
+***
 
 ### Step 6.c: Implementing Resilience4J:Retry
 
@@ -539,5 +555,108 @@ Result:
 
 Using Zipkin we can see all attempts and trace down the overall response time until HTTP:500 shows up
 ![Retry Fail Zipkin](images/retry-fail-zipkin.png)
+
+***
+
+## Step 7: Resilience4J - Rate Limiter
+
+We will use the last microservice to demonstrate rate limiting. 
+The Address Service already has all dependencies, so we just need to add some code and configure Rate Limiter.
+
+Let's add rate limiting config to the Address Service on the Config Server:
+```properties
+# Adding configuration for Resilience4J:Rate Limiter
+resilience4j.ratelimiter.instances.addressLimit.limitForPeriod=5
+resilience4j.ratelimiter.instances.addressLimit.limitRefreshPeriod=15s
+resilience4j.ratelimiter.instances.addressLimit.timeoutDuration=5s
+
+resilience4j.ratelimiter.instances.addressLimit.registerHealthIndicator=true
+resilience4j.ratelimiter.instances.addressLimit.eventConsumerBufferSize=100
+```
+
+now we will add Rate Limiter to the AddressController
+```JAVA
+import cool.cfapps.addressservice.dto.AddressResponse;
+import cool.cfapps.addressservice.service.AddressService;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.micrometer.observation.annotation.Observed;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/v1/address")
+@Slf4j
+public class AddressController {
+
+    private final AddressService addressService;
+
+    public AddressController(AddressService addressService) {
+        this.addressService = addressService;
+    }
+
+    @GetMapping()
+    public List<AddressResponse> getAllAddresses() {
+        return addressService.findAll();
+    }
+
+    @GetMapping("/{id}")
+    @Observed(
+            name = "user.name",
+            contextualName = "address-->database",
+            lowCardinalityKeyValues = {"userType", "userType2"}
+    )
+    @RateLimiter(name = "addressLimit", fallbackMethod = "addressErrorResponse")
+    public ResponseEntity<AddressResponse> getAddressById(@PathVariable Long id) {
+        log.info("get address with id: {}", id);
+        Optional<AddressResponse> result = addressService.findById(id);
+        return result.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    }
+
+    public ResponseEntity<AddressResponse> addressErrorResponse(@PathVariable Long id, Throwable th) {
+        log.info("fallback on rate limit hit");
+
+        Optional<AddressResponse> result = Optional.of(AddressResponse.builder()
+                .failure(true)
+                .build());
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(result.get());
+    }
+
+    @GetMapping("/nolimit/{id}")
+    @Observed(
+            name = "user.name",
+            contextualName = "address-->database",
+            lowCardinalityKeyValues = {"userType", "userType2"}
+    )
+    public ResponseEntity<AddressResponse> getUnlimitedAddressById(@PathVariable Long id) {
+        log.info("get address with no limit id: {}", id);
+        Optional<AddressResponse> result = addressService.findById(id);
+        return result.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    }
+
+}
+```
+
+Now we can restart the Address Service, on starting it, it will create two Address Entries into the addresses table.
+- http://localhost:9000/address-service/api/v1/address/1
+
+If we now call the same API endpoint more than 5 times in less than 15 seconds, the Rate Limiter will stall the 
+response for the configured time (5s) and return in our case a NULL Object.
+
+The Address Service log shows the call sequence and the limiting:
+![Rate Limiter Log](images/rate-limiter-log.png)
+
+The response will provide a HTTP:429 Error and a Fall-Back Object (NULL)
+![Rate Limiter Response](images/rate-limiter-response.png)
+
+***
+
+## Step 8: Resilience4J - Bulkhead
+
 
 
