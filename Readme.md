@@ -658,5 +658,75 @@ The response will provide a HTTP:429 Error and a Fall-Back Object (NULL)
 
 ## Step 8: Resilience4J - Bulkhead
 
+Prepare to simulate a slow backend service, we will add some time (500ms) to the Student Service - getAllStudents().
+We can uncomment the following line:
+```JAVA
+try{Thread.sleep(500);} catch (InterruptedException e) {}
+```
 
+To configure Bulkhead we add the following properties to the Student Service config:
+```properties
+# Adding configuration for Resilience4J:Bulkhead
+resilience4j.bulkhead.instances.bulkheadWithConcurrentCalls.maxConcurrentCalls=3
+resilience4j.bulkhead.instances.bulkheadWithConcurrentCalls.writableStackTraceEnabled=no
+```
+we will only allow max 3 concurrent calls to protect the slow backend and prevent the caller to fail.
+
+Now we need to add @Bulkhead annotation to the StudentController:
+```JAVA
+import cool.cfapps.studentservice.dto.StudentResponse;
+import cool.cfapps.studentservice.service.StudentService;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
+import io.micrometer.observation.annotation.Observed;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/student")
+@Slf4j
+public class StudentController {
+
+    private final StudentService studentService;
+
+    public StudentController(StudentService studentService) {
+        this.studentService = studentService;
+    }
+
+    @GetMapping("/{id}")
+    @Observed(
+            name = "user.name",
+            contextualName = "student-->address",
+            lowCardinalityKeyValues = {"userType", "userType2"}
+    )
+    public ResponseEntity<StudentResponse> getStudentById(@PathVariable Long id) {
+        log.info("getStudentById: {}", id);
+        return studentService.getStudent(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    }
+
+
+
+    @GetMapping
+    @Bulkhead(name = "bulkheadWithConcurrentCalls")
+    public List<StudentResponse> getAllStudents() {
+        log.info("getAllStudents()");
+        return  studentService.getAllStudents();
+    }
+
+}
+```
+
+In this example we are using Apache ab to create 5 concurrent calls:
+- http://localhost:9000/student-service/api/v1/student
+
+![Bulkhead Call AB](images/bulkhead-call.png)
+
+The Student Service log:
+![Bulkhead Call AB](images/bulkhead-log.png)
+
+***
+
+## Step 9: Resilience4J - Circuit Breaker
 
