@@ -1,5 +1,7 @@
-# Resilience4J Hands On Workshop 
-this repo is intended to clone and it provides a step by step guide to cover following topics:
+# Resilience4J Hands-On Workshop 
+(Maintained by Andreas Lange)
+
+### this repo is intended to clone, and it provides a step-by-step guide to cover following topics:
 
 - Eureka Service Discovery
 - Config Server
@@ -266,7 +268,8 @@ adding the dependencies:
     <groupId>io.micrometer</groupId>
     <artifactId>micrometer-tracing-bridge-brave</artifactId>
 </dependency>
-
+```
+```XML
 <!-- to send Zipkin data to a remote Zipkin instance -->
 <dependency>
     <groupId>io.zipkin.reporter2</groupId>
