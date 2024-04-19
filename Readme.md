@@ -135,10 +135,10 @@ Flaky Service has two endpoints:
 
 Later we want to let the calling service retry on the flaky endpoint.
 
-/all Endpoint
+"/all" Endpoint
 ![Flaky List](images/flaky-all.png)
 
-/code/BIO Endpoint should produce two results by random 50%
+"/code/BIO" Endpoint should produce two results by random 50%
 
 returning 200 OK
 ![Flaky OK](images/flaky-ok.png)
