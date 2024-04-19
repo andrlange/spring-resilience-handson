@@ -116,4 +116,34 @@ now you should see the following running containers:
 
 make sure all containers are up, so you can access all the services later.
 
+## Step 5) Resilience4J - Retry
+
+First we want to extend our first microservice "FlakyService" to register with the Service Registry (Eureka) and 
+also supporting distributed tracing using zipkin.
+
+### Step 5.a) Endpoint Test - Flaky Service
+
+Run the Flaky Service 
+
+```bash
+mvn spring-boot:run
+```
+
+Flaky Service has two endpoints:
+- http://localhost:8085/flaky/all returns all courses constantly
+- http://localhost:8085/flaky/code/{CODE} returns a course where 50% of the calls returning a 500 Internal Server Error
+
+Later we want to let the calling service retry on the flaky endpoint.
+
+/all Endpoint
+![Flaky List](images/flaky-all.png)
+
+/code/BIO Endpoint should produce two results by random 50%
+
+returning 200 OK
+![Flaky OK](images/flaky-ok.png)
+returning 500 Error
+![Flaky Error](images/flaky-error.png)
+
+Now we also want to let this service register to the Service Registry:
 
