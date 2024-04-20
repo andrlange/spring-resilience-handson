@@ -22,4 +22,7 @@ public interface AddressFeignClient {
 
     @GetMapping("/flaky-service/flaky/all")
     List<FlakyDto> getAllFlaky();
+
+    @GetMapping("/flaky-service/flaky/version")
+    String getVersionFlaky();
 }

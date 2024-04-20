@@ -2,6 +2,7 @@ package cool.cfapps.studentservice.service;
 
 import cool.cfapps.studentservice.client.AddressFeignClient;
 import cool.cfapps.studentservice.dto.FlakyDto;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -9,6 +10,7 @@ import io.github.resilience4j.retry.annotation.Retry;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
@@ -20,6 +22,7 @@ public class FlakyService {
     private int retryCnt = 0;
 
     private final AddressFeignClient addressFeignClient;
+
 
     public FlakyService(AddressFeignClient addressFeignClient) {
         this.addressFeignClient = addressFeignClient;
@@ -42,5 +45,15 @@ public class FlakyService {
 
     public List<FlakyDto> getAllFlaky() {
         return addressFeignClient.getAllFlaky();
+    }
+
+    @TimeLimiter(name = "flakyVersion", fallbackMethod = "getVersionFlakyTimeout")
+    public CompletableFuture<String> getVersionFlaky() {
+        return CompletableFuture.supplyAsync(addressFeignClient::getVersionFlaky);
+    }
+
+    public CompletableFuture<String> getVersionFlakyTimeout(Throwable th) {
+        log.info("getVersionFlaky Fallback");
+        return CompletableFuture.completedFuture("Not Available:" + th.getMessage());
     }
 }

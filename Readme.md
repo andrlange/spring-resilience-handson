@@ -22,6 +22,7 @@
 - Bulkhead
 - Retry
 - Rate Limiter
+- Timeout Limiter
 
 ## App Monitoring 
 
@@ -663,7 +664,7 @@ The response will provide a HTTP:429 Error and a Fall-Back Object (NULL)
 
 Prepare to simulate a slow backend service, we will add some time (500ms) to the Student Service - getAllStudents().
 We can uncomment the following line:
-```JAVA
+```text
 try{Thread.sleep(500);} catch (InterruptedException e) {}
 ```
 
@@ -816,7 +817,64 @@ As soon we stay on responsive calls the Circuit Breaker will change again to CLO
 ***
 
 
-## Step 10: Finally we will add a Resilience4J Dashboard to Grafana
+## Step 10: Resilience4J - TimeoutLimiter
+
+To use TimeoutLimiter we want to call a very slow API endpoint. The /version endpoint of Flaky Servie will take 5
+seconds to return.
+
+- http://localhost:9000/flaky-service/flaky/version
+
+The Student Service will provide access to the FlakyService Version endpoint through:
+
+- http://localhost:9000/student-service/api/v1/flaky/version
+
+
+The FlakyService in the Student Service will try to call the client, on timeout we want to fall back to an
+alternative result. Add both methods to service/FlakyService
+```JAVA
+@TimeLimiter(name = "flakyVersion", fallbackMethod = "getVersionFlakyTimeout")
+    public CompletableFuture<String> getVersionFlaky() {
+        return CompletableFuture.supplyAsync(addressFeignClient::getVersionFlaky);
+    }
+
+    public CompletableFuture<String> getVersionFlakyTimeout(Throwable th) {
+        log.info("getVersionFlaky Fallback");
+        return CompletableFuture.completedFuture("Not Available:" + th.getMessage());
+    }
+```
+
+We want to add a new Version endpoint in our Student Service for Flaky Service,
+add this method to controller/FlakyController
+```JAVA
+@GetMapping("/version")
+    public CompletableFuture<String> getVersionFlaky() {
+        log.info("getVersionFlaky");
+        return flakyService.getVersionFlaky();
+    }
+```
+
+Let us add the FlakyVersion endpoint to the client/AddressFeignClient
+```JAVA
+@GetMapping("/flaky-service/flaky/version")
+    String getVersionFlaky();
+```
+
+After restarting Student Service we can call the given endpoint.
+
+Student Service log
+![Timeout Log](images/timeout-log.png)
+
+Calling the Flaky Service Version endpoint
+![Timeout Log](images/timeout-call.png)
+
+Student Service response calling the Flaky Service Version endpoint
+![Timeout Log](images/timeout-fallback.png)
+
+
+***
+
+
+## Step 11: Finally we will add a Resilience4J Dashboard to Grafana
 
 Like Step 5.d we will add a Dashboard. Execute the same steps to import dashboards/resilience.json
 Hint!: Just remember to chose prometheus as data source.
@@ -845,4 +903,26 @@ Don't forget to stop all Services and:
 docker compose down
 ```
 
+***
+
+### Aspect order
+The Resilience4J Aspects order is the following:
+```text
+Retry ( CircuitBreaker ( RateLimiter ( TimeLimiter ( Bulkhead ( Function ) ) ) ) )
+```
+so Retry is applied at the end (if needed).
+If you need a different order, you must use the functional chaining style instead of the Spring annotations style or explicitly set aspect order using the following properties:
+
+```text
+- resilience4j.retry.retryAspectOrder
+- resilience4j.circuitbreaker.circuitBreakerAspectOrder
+- resilience4j.ratelimiter.rateLimiterAspectOrder
+- resilience4j.timelimiter.timeLimiterAspectOrder
+- resilience4j.bulkhead.bulkheadAspectOrder
+```
+
 ### ENJOY THIS HANDS-ON
+
+
+
+
