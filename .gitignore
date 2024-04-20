@@ -1,5 +1,6 @@
 .idea
 .fastRequest
+.DS_Store
 vols
 flaky-service-tmp
 student-service-tmp
