@@ -114,7 +114,7 @@ You should now receive the following config:
 ***
 
 ## Step 4: Run Containers such as DB, Zipkin etc.
-Run PostgreSQL, PG-Admin, Zipkin Server, Prometheus and Granafa
+Run PostgreSQL, PG-Admin, Zipkin Server, Prometheus and Grafana
 
 To run all the services you can just use the docker-compose.yaml file to start all services.
 
