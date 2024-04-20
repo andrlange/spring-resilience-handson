@@ -333,7 +333,7 @@ after restarting a new actuator endpoint for Prometheus is exposed:
 - http://localhost:8085/actuator/prometheus
 ![Prometheus Actuator](images/prometheus-actuator.png)
 
-We also started a Prometheus and Grafana Service using our docker-compose.yaml, so we have an Prometheus and Grafana 
+We also started a Prometheus and Grafana Service using our docker-compose.yaml, so we have Prometheus and Grafana 
 Service running already.
 check prometheus target status to see if prometheus can reach our flaky service:
 - http://localhost:9090/targets
@@ -794,7 +794,7 @@ public class CommonService {
 Now we can call the endpoints for testing:
 - http://localhost:9000/student-service/api/v1/student/0
 
-As long the Address Service is up and we don't have more than 50% failing calls (10 Calls min.), the Circuit Breaker 
+As long the Address Service is up, and we don't have more than 50% failing calls (10 Calls min.), the Circuit Breaker 
 stays CLOSED.
 
 Check the Actuator:
@@ -817,7 +817,7 @@ As soon we stay on responsive calls the Circuit Breaker will change again to CLO
 ***
 
 
-## Step 10: Resilience4J - TimeoutLimiter
+## Step 10: Resilience4J - Timeout Limiter
 
 To use TimeoutLimiter we want to call a very slow API endpoint. The /version endpoint of Flaky Servie will take 5
 seconds to return.
