@@ -22,7 +22,7 @@
 - Bulkhead
 - Retry
 - Rate Limiter
-- Timeout Limiter
+- Time Limiter
 
 ## App Monitoring 
 
@@ -817,9 +817,9 @@ As soon we stay on responsive calls the Circuit Breaker will change again to CLO
 ***
 
 
-## Step 10: Resilience4J - Timeout Limiter
+## Step 10: Resilience4J - Time Limiter
 
-To use TimeoutLimiter we want to call a very slow API endpoint. The /version endpoint of Flaky Servie will take 5
+To use TimeLimiter we want to call a very slow API endpoint. The /version endpoint of Flaky Servie will take 5
 seconds to return.
 
 - http://localhost:9000/flaky-service/flaky/version
