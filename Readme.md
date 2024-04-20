@@ -8,7 +8,7 @@
 - Eureka Service Discovery
 - Config Server
 - Spring Cloud Gateway
-- Microservice Template to jumpstart all needed microservices
+- Basic microservice to jumpstart all needed microservices
 
 ## Distributed Tracing
 
