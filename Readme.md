@@ -1,5 +1,5 @@
 # Resilience4J Hands-On Workshop 
-(Maintained by Andreas Lange)
+
 
 #### Powered by: Spring Boot 3.2.5 and Spring Cloud 2023.0.1
 
@@ -818,7 +818,7 @@ As soon we stay on responsive calls the Circuit Breaker will change again to CLO
 
 
 ## Step 10: Resilience4J - Time Limiter
-
+y
 To use TimeLimiter we want to call a very slow API endpoint. The /version endpoint of Flaky Servie will take 5
 seconds to return.
 
