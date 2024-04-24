@@ -96,7 +96,7 @@ spring.cloud.config.server.git.uri=file://${user.home}/YOUR_FOLDER_PATH/spring-r
 points to the folder from where our configs are served. This config works for Mac and Linux.
 On Windows, you need an extra "/" in the file URL if it is absolute with a drive prefix (for example,file:///${user.home}/config-repo).
 ```config
-spring.cloud.config.server.git.uri=file:///C:/${user.home}/YOUR_FOLDER_PATH/resilience-handson/config-server/config/
+spring.cloud.config.server.git.uri=file:///C:/${user.home}/YOUR_FOLDER_PATH/spring-resilience-handson/config-server/config/
 ```
 
 now you should be able to run the Spring Cloud Config Server from the config-server folder:
