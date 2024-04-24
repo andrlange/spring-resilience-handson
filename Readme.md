@@ -177,6 +177,11 @@ Run Spring Cloud Gateway after you have checked the Config Server is up and runn
 - http://localhost:9000 
 are served by the Spring Cloud Gateway.
 
+Change to config-server and
+```bash
+mvn spring-boot:run
+```
+
 ***
 
 ## Step 5: First Microservice and Monitoring Setup
