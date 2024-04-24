@@ -219,7 +219,8 @@ returning 500 Error
 
 Now we also want to let this service register to the Service Discovery:
 
-Adding Eureka-Dependencies to register and to retrieve services 
+Adding Eureka-Dependencies to register and to retrieve services.
+Edit /spring-resilience-handson/flaky-service/pom.xml
 ```XML
 <!-- Eureka Service Discovery -->
 <dependency>
@@ -227,7 +228,7 @@ Adding Eureka-Dependencies to register and to retrieve services
     <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 </dependency>
 ```
-and the configuration to applications.properties
+and the configuration to /spring-resilience-handson/flaky-service/src/main/resources/applicaion.properties
 ```properties
 # Eureka
 eureka.client.service-url.defaultZone=http://eureka:password@localhost:8761/eureka/
