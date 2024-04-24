@@ -32,12 +32,13 @@
 ## Prerequisites
 
 - Mac, Linux or Windows 
-- Java JDK 17 or 21
+- Java JDK 21
 - Maven 3.9.x
 - Docker Desktop
 - IntelliJ or VS-Code
 - Git Client
-- optional ab for stress testing
+- Apache ab for stress testing
+- Postman or other Tools to test APIs
 
 # what we want to build
 
@@ -76,6 +77,8 @@ In our case we will use the local file system to serve as git repo.
 
 Change into the "config" folder in config-server and init the folder as local git-repo as followed:
 
+**Do the git init etc. in the subdirectory "config" of the config-server!!!**
+
 ```bash
 git init
 git add .
@@ -87,13 +90,13 @@ The application.properties in "config-server/src/main/java/resources" keeps the 
 Config Server.
 
 ```config
-spring.cloud.config.server.git.uri=file://${user.home}/YOUR_FOLDER_PATH/resilience-handson/config-server/config/
+spring.cloud.config.server.git.uri=file://${user.home}/YOUR_FOLDER_PATH/spring-resilience-handson/config-server/config/
 ```
 
 points to the folder from where our configs are served. This config works for Mac and Linux.
 On Windows, you need an extra "/" in the file URL if it is absolute with a drive prefix (for example,file:///${user.home}/config-repo).
 ```config
-spring.cloud.config.server.git.uri=file:///${user.home}/YOUR_FOLDER_PATH/resilience-handson/config-server/config/
+spring.cloud.config.server.git.uri=file:///C:/${user.home}/YOUR_FOLDER_PATH/resilience-handson/config-server/config/
 ```
 
 now you should be able to run the Spring Cloud Config Server from the config-server folder:
@@ -110,6 +113,17 @@ http://localhost:8888/spring-cloud-gateway/dev
 You should now receive the following config:
 
 ![Config](images/config-example.png)
+
+
+
+
+**Info: After each change on the .properties files you need to:**
+```bash
+cd config
+git add .
+git commit -m "updated"
+```
+**to update the configuration!**
 
 ***
 
@@ -128,6 +142,40 @@ now you should see the following running containers:
 ![Containers](images/container-ps.png)
 
 make sure all containers are up, so you can access all the services later.
+
+***
+
+### 4.a: Create Databases manually (ONLY FOR WINDOWS)
+
+The Database Init Script might not run starting the postgresdb container because Windows supresses the +X 
+(executable) on the init-database.sh
+
+You need to login to PGAdmin
+- http://localhost:5555
+Username: user@example.de - Password: password
+
+Register a database by adding it:
+Name: postgres
+Connection: 
+- Host: postgresql-service
+- Port: 5432
+- managementDB: postgres
+- Username: postgres
+- Password: password
+- Save Password: yes
+
+After you are connected create two new databases:
+- students
+- addresses
+
+
+***
+
+### 4.b: Run Spring Cloud Gateway
+
+Run Spring Cloud Gateway after you have checked the Config Server is up and running. All Endpoints on:
+- http://localhost:9000 
+are served by the Spring Cloud Gateway.
 
 ***
 
